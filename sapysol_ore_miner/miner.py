@@ -173,6 +173,15 @@ class Miner:
     def Mine(self):
         while True:
             try:
+                result = self.Register()
+                if result == True:
+                    break
+            except KeyboardInterrupt:
+                quit()
+            except:
+                raise
+        while True:
+            try:
                 self.MineSingleTry()
             except KeyboardInterrupt:
                 quit()
