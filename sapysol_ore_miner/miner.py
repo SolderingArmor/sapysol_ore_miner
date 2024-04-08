@@ -15,6 +15,7 @@ from   concurrent.futures    import ProcessPoolExecutor
 from   pathlib               import Path
 from   typing                import Tuple
 import random
+import time
 import json
 import sha3
 import os
@@ -105,6 +106,16 @@ class Miner:
 
     # ========================================
     #
+    def CheckHash(self, seed: bytes, nonce: int, difficulty: bytes) -> bool:
+        k = sha3.keccak_256()
+        k.update(bytes(seed) + bytes(self.SIGNER.pubkey()) + nonce.to_bytes(8, "little"))
+        digest = k.digest()
+        if digest < difficulty:
+            return True
+        return False
+
+    # ========================================
+    #
     def FindHash(self, seed: bytes, difficulty: bytes) -> Tuple[bytes, int]:
         nonce    = self.ACCOUNTS.GetNonce()
         maxNonce = 2**64
@@ -139,18 +150,25 @@ class Miner:
     # ========================================
     #
     def MineSingleTry(self):
+        startTime: int = int(time.time())
+
         self.ACCOUNTS.FetchState()
-        currentHash       = bytes(self.ACCOUNTS.PROOF.hash)
-        currentDifficulty = self.ACCOUNTS.TREASURY.difficulty
 
         logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: rewards: {self.ACCOUNTS.PROOF.claimable_rewards / 1_000_000_000}")
         logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: mining next block...")
-        hash, nonce = self.FindHash(seed=bytes(currentHash), difficulty=bytes(currentDifficulty))
+        hash, nonce = self.FindHash(seed=bytes(self.ACCOUNTS.PROOF.hash), difficulty=bytes(self.ACCOUNTS.TREASURY.difficulty))
         self.ACCOUNTS.UpdateNonce(nonce=nonce)
         logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: Found hash with nonce: {nonce}")
 
-        # Refetch because mining could take a lot of time
-        self.ACCOUNTS.FetchState()
+        # Refetch because mining could take a lot of time. After that we need to double check
+        # the hash with updated data because difficulty may have changed and the hash may become
+        # invalid. It's just a double check to avoid 0x03 errors.
+        # P.S. if it is less than 3 seconds between 2 fetches that probably means we are resubmitting,
+        # no reason to query same data
+        if int(time.time()) - startTime > 3:
+            self.ACCOUNTS.FetchState()
+        if not self.CheckHash(seed=bytes(self.ACCOUNTS.PROOF.hash), nonce=nonce, difficulty=bytes(self.ACCOUNTS.TREASURY.difficulty)):
+            return
 
         # Check if epoch reset is needed
         if self.TryResetEpoch():
@@ -268,7 +286,7 @@ class Miner:
     def GetCorrectBus(self, rewardRate: int):
         # Buses were already fetched
         for i in range(len(self.ACCOUNTS.BUSES)):
-            if self.ACCOUNTS.BUSES[i].rewards > (rewardRate * 4):
+            if self.ACCOUNTS.BUSES[i].rewards > (rewardRate * 20):
                 return self.ACCOUNTS.BUSES[i], BUS_ADDRESSES[i]
 
 # ================================================================================
