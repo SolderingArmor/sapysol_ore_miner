@@ -24,6 +24,8 @@ from sapysol import *
 from sapysol_ore_miner.miner_manager import MinerManager
 import time
 
+SetupLogging()
+
 manager: MinerManager = MinerManager()
 manager.StartMiners("config.json")
 
