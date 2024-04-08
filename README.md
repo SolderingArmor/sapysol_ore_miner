@@ -12,6 +12,7 @@ WARNING! `mine` works with `keccak-256` single thread solving! But you can run u
 
 ```sh
 pip install sapysol
+pip install safe-pysha3
 ```
 
 Note: Requires Python >= 3.11.
