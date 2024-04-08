@@ -2,11 +2,11 @@
 
 `sapysol` Ore miner implementation. Based on [ore](https://github.com/HardhatChad/ore) and [ore-cli](https://github.com/HardhatChad/ore-cli), written from scratch.
 
-Whar currently works: `register`, `mine`.
+What currently works: `register`, `mine`.
 
 WARNING! `claim` currently does not work!
 
-WARNING! `mine` works with `keccak-256` single thread solving! But you can run unlimited threads of different miners (with different private keys).
+WARNING! `mine` works with `keccak-256` single thread solving! But you can run unlimited threads of different miners (with different private keys). For that please update `config.json`, check sample in `config.json.sample`
 
 # Installation
 
