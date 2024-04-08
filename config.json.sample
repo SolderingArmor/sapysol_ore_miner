@@ -1,0 +1,16 @@
+{
+    "connection": "https://api.mainnet-beta.solana.com",
+    "connection_override": [],
+    "priority_fee": 20000,
+    "miners": [
+        {
+            "signer": "/path/to/json",
+            "connection": "https://api.mainnet-beta.solana.com",
+            "connection_override": ["https://api.mainnet-beta.solana.com"],
+            "priority_fee": 20000,
+        },
+        {
+            "signer": "/path/to/json"
+        }
+    ]
+}

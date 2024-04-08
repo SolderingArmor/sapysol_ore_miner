@@ -1,0 +1,11 @@
+logs/*
+build/*
+dist/*
+sapysol_ore_miner.egg-info/*
+*__pycache__*
+build.sh
+publish.sh
+*.log
+*.db
+test*.py
+config.json
