@@ -147,7 +147,7 @@ class Miner:
         logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: mining next block...")
         hash, nonce = self.FindHash(seed=bytes(currentHash), difficulty=bytes(currentDifficulty))
         self.ACCOUNTS.UpdateNonce(nonce=nonce)
-        logging.info(f"Miner {str(self.SIGNER.pubkey())} Found hash with nonce: {nonce}")
+        logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: Found hash with nonce: {nonce}")
 
         # Refetch because mining could take a lot of time
         self.ACCOUNTS.FetchState()
