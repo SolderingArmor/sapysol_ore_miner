@@ -8,14 +8,16 @@ from  .anchorpy.instructions import *
 from  .anchorpy.accounts     import *
 from  .derive                import *
 from   sapysol.sysvar.clock  import SysvarClock, SYSVAR_CLOCK_PUBKEY
-from   sapysol               import MakeKeypair, MakePubkey, FetchAccount, FetchAccounts, SapysolTx
+from   sapysol               import MakeKeypair, MakePubkey, EnsurePathExists, FetchAccount, FetchAccounts, SapysolTx
 from   sapysol.ix            import *
 from   sapysol.tx            import *
 from   concurrent.futures    import ProcessPoolExecutor
 from   pathlib               import Path
 from   typing                import Tuple
 import random
+import json
 import sha3
+import os
 
 # ================================================================================
 #
@@ -28,15 +30,30 @@ class _MinerAccounts:
         self.TREASURY:      Treasury    = None 
         self.CLOCK:         SysvarClock = None
         self.BUSES:         List[Bus]   = None
-        self.LAST_NONCE:    int         = 1634658991635290317
+        self.LAST_NONCE:    int         = 0
 
-    def UpdateNonce(self, nonce: int) ->None:
+    # ========================================
+    #
+    def UpdateNonce(self, nonce: int) -> None:
+        EnsurePathExists(".cache")
+        filePath = os.path.join(".cache", f"{str(self.SIGNER.pubkey())}.json")
+        with open(filePath, "w") as f:
+            json.dump({"nonce": nonce}, f)
         self.LAST_NONCE: int = nonce
 
+    # ========================================
+    #
     def GetNonce(self) -> int:
-        # TODO
+        try:
+            filePath = os.path.join(".cache", f"{str(self.SIGNER.pubkey())}.json")
+            with open(filePath) as f:
+                self.LAST_NONCE = json.loads(f.read())["nonce"]
+        except:
+            pass
         return self.LAST_NONCE
 
+    # ========================================
+    #
     # Do less calls to RPC, fetch all accounts in one run.
     def FetchState(self):
         accounts = FetchAccounts(connection=self.CONNECTION, 
@@ -66,7 +83,7 @@ class Miner:
         proofAddress = DeriveProofAddress(authority=self.SIGNER.pubkey())
         accountInfo  = FetchAccount(connection=self.CONNECTION, pubkey=proofAddress)
         if accountInfo:
-            print(f"Miner {str(self.SIGNER.pubkey())} is already registered.")
+            print(f"Miner {str(self.SIGNER.pubkey()):>44}: is already registered.")
             return True
 
         print(f"Registering miner {str(self.SIGNER.pubkey())}...")
@@ -126,8 +143,8 @@ class Miner:
         currentHash       = bytes(self.ACCOUNTS.PROOF.hash)
         currentDifficulty = self.ACCOUNTS.TREASURY.difficulty
 
-        logging.info(f"Miner {str(self.SIGNER.pubkey())} rewards: {self.ACCOUNTS.PROOF.claimable_rewards / 1_000_000_000}")
-        logging.info(f"Miner {str(self.SIGNER.pubkey())} mining next block...")
+        logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: rewards: {self.ACCOUNTS.PROOF.claimable_rewards / 1_000_000_000}")
+        logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: mining next block...")
         hash, nonce = self.FindHash(seed=bytes(currentHash), difficulty=bytes(currentDifficulty))
         self.ACCOUNTS.UpdateNonce(nonce=nonce)
         logging.info(f"Miner {str(self.SIGNER.pubkey())} Found hash with nonce: {nonce}")
@@ -141,7 +158,7 @@ class Miner:
 
         bus, busAddress = self.GetCorrectBus(rewardRate=self.ACCOUNTS.TREASURY.reward_rate)
         busRewards: float = bus.rewards / 1_000_000_000
-        logging.info(f"Miner {str(self.SIGNER.pubkey())} sending on bus {str(busAddress)} (with {busRewards} ORE)")
+        logging.info(f"Miner {str(self.SIGNER.pubkey()):>44}: sending on bus {str(busAddress)} (with {busRewards} ORE)")
 
         try:
             ixMine = mine(signer = self.SIGNER.pubkey(), 
@@ -186,6 +203,8 @@ class Miner:
                 self.MineSingleTry()
             except KeyboardInterrupt:
                 quit()
+            except SolanaRpcException:
+                print("RPC Exception...")
             except:
                 raise
 
@@ -202,7 +221,43 @@ class Miner:
     # ========================================
     #
     def Claim(self) -> None:
-        pass
+        minerAta = GetOrCreateAtaIx(connection = self.CONNECTION,
+                                    tokenMint  = ORE_MINT_ADDRESS,
+                                    owner      = self.SIGNER.pubkey())
+        claimAccounts: ClaimAccounts = ClaimAccounts(signer          = self.SIGNER.pubkey(),
+                                                     beneficiary     = minerAta.pubkey,
+                                                     mint            = ORE_MINT_ADDRESS,
+                                                     proof           = self.ACCOUNTS.PROOF_PUBKEY,
+                                                     treasury        = TREASURY_ADDRESS,
+                                                     treasury_tokens = TREASURY_TOKEN_ATA)
+
+        self.ACCOUNTS.FetchState()
+        while True:
+            self.ACCOUNTS.FetchState()
+            if self.ACCOUNTS.PROOF.claimable_rewards <= 0:
+                break
+
+            try:
+                ixClaim = claim(signer = self.SIGNER.pubkey(), 
+                            accounts = claimAccounts,
+                            amount   = self.ACCOUNTS.PROOF.claimable_rewards)
+                ixList: List[Instruction] = []
+                ixList.append(ComputeBudgetIx())
+                ixList.append(ComputePriceIx(self.PRIORITY_FEE))
+                if minerAta.ix:
+                    ixList.append(minerAta.ix)
+                ixList.append(ixClaim)
+
+                tx: SapysolTx = SapysolTx(connection=self.CONNECTION, payer=self.SIGNER)
+                tx.FromInstructionsLegacy(ixList).Sign()
+                result = tx.SendAndWait(self.CONN_OVERRIDE)
+
+            except KeyboardInterrupt:
+                quit()
+            except SolanaRpcException:
+                print("RPC Exception...")
+            except:
+                pass
 
     # ========================================
     #

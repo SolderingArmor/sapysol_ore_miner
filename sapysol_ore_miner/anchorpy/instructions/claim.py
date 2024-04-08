@@ -5,12 +5,13 @@ import typing
 from   solders.pubkey      import Pubkey
 from   spl.token.constants import TOKEN_PROGRAM_ID
 from   solders.instruction import Instruction, AccountMeta
+from   construct           import Construct
+import borsh_construct     as borsh
 from ..program_id          import PROGRAM_ID
 
 # ================================================================================
 #
 class ClaimAccounts(typing.TypedDict):
-    ore_program:     Pubkey
     signer:          Pubkey
     beneficiary:     Pubkey
     mint:            Pubkey
@@ -18,9 +19,19 @@ class ClaimAccounts(typing.TypedDict):
     treasury:        Pubkey
     treasury_tokens: Pubkey
 
+class ClaimArgs(typing.TypedDict):
+    amount: int
+
+# ================================================================================
+#
+layout = borsh.CStruct(
+    "amount" / borsh.U64,
+)
+
 # ================================================================================
 #
 def claim(accounts:           ClaimAccounts,
+          amount:             int,
           program_id:         Pubkey = PROGRAM_ID,
           remaining_accounts: typing.Optional[typing.List[AccountMeta]] = None) -> Instruction:
 
@@ -36,8 +47,10 @@ def claim(accounts:           ClaimAccounts,
     if remaining_accounts is not None:
         keys += remaining_accounts
     identifier   = b"\x03"
-    encoded_args = b""
-    data         = identifier + encoded_args
+    encoded_args = layout.build({
+        "amount": amount,
+    })
+    data = identifier + encoded_args
     return Instruction(program_id, data, keys)
 
 # ================================================================================

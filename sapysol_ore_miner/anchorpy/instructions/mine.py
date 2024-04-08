@@ -45,7 +45,6 @@ def mine(signer: Pubkey,
     if remaining_accounts is not None:
         keys += remaining_accounts
     identifier = b"\x02"
-    #encoded_args = hash + nonce.to_bytes(8, "little")
     encoded_args = layout.build({
         "hash":  args["hash"],
         "nonce": args["nonce"],
