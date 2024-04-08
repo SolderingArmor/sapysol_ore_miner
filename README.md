@@ -19,7 +19,7 @@ Note: Requires Python >= 3.11.
 # Usage
 
 ```py
-# Sending SOL to another wallet
+# ORE mining
 from sapysol import *
 from sapysol_ore_miner.miner_manager import MinerManager
 import time
