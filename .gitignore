@@ -9,3 +9,4 @@ publish.sh
 *.db
 test*.py
 config.json
+.cache/*

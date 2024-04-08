@@ -4,7 +4,7 @@
 
 What currently works: `register`, `mine`.
 
-WARNING! `claim` currently does not work!
+WARNING! `claim` currently implemented but not tested!
 
 WARNING! `mine` works with `keccak-256` single thread solving! But you can run unlimited threads of different miners (with different private keys). For that please update `config.json`, check sample in `config.json.sample`
 
