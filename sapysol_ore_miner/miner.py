@@ -174,6 +174,10 @@ class Miner:
             tx.FromInstructionsLegacy(ixList).Sign()
             result = tx.SendAndWait(self.CONN_OVERRIDE)
 
+            # Reset nonce only if it is a success
+            if result == SapysolTxStatus.SUCCESS:
+                self.ACCOUNTS.UpdateNonce(nonce=nonce)
+
             # No matter what result is we recorded last (successfull) nonce and will retry
             # with refetching all accounts. See, because Solana is congested we can get TIMEOUT
             # but transaction may actually succeed. By returning here we ensure that we retry the 
