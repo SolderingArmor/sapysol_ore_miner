@@ -22,9 +22,13 @@ Note: Requires Python >= 3.11.
 # Sending SOL to another wallet
 from sapysol import *
 from sapysol_ore_miner.miner_manager import MinerManager
+import time
 
 manager: MinerManager = MinerManager()
 manager.StartMiners("config.json")
+
+while True:
+    time.sleep(0.1)
 ```
 
 TODO
