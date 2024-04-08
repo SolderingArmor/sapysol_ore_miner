@@ -42,8 +42,8 @@ class MinerManagerConfig:
 class MinerManager:
     def __init__(self):
         self.CONFIG:      MinerManagerConfig = None
-        self.MINERS_LIST: List[Miner] = []
-        self.THREADS:     List[Thread]
+        self.MINERS_LIST: List[Miner]  = []
+        self.THREADS:     List[Thread] = []
 
     def StartMiners(self, configPath: str):
         self.CONFIG: MinerManagerConfig = MinerManagerConfig(configPath=configPath)
@@ -52,7 +52,7 @@ class MinerManager:
             self.MINERS_LIST.append(miner)
 
         for miner in self.MINERS_LIST:
-            thr = Thread(target=miner.Mine())
+            thr = Thread(target=miner.Mine, daemon=True)
             thr.start()
             self.THREADS.append(thr)
 

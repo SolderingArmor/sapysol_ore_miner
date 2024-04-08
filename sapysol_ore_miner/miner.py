@@ -66,10 +66,10 @@ class Miner:
         proofAddress = DeriveProofAddress(authority=self.SIGNER.pubkey())
         accountInfo  = FetchAccount(connection=self.CONNECTION, pubkey=proofAddress)
         if accountInfo:
-            print("Miner is already registered.")
+            print(f"Miner {str(self.SIGNER.pubkey())} is already registered.")
             return True
 
-        print("Registering miner...")
+        print(f"Registering miner {str(self.SIGNER.pubkey())}...")
         accounts = RegisterAccounts(ore_program = ORE_PROGRAM_ID,
                                     signer      = self.SIGNER.pubkey(),
                                     proof       = proofAddress)
@@ -77,6 +77,7 @@ class Miner:
 
         tx = SapysolTx(connection=self.CONNECTION, payer=self.SIGNER)
         tx.FromInstructionsLegacy([registerIx])
+        tx.Sign()
         result = tx.SendAndWait()
         if result == SapysolTxStatus.SUCCESS:
             logging.info(f"Miner registration successful!")
@@ -125,11 +126,11 @@ class Miner:
         currentHash       = bytes(self.ACCOUNTS.PROOF.hash)
         currentDifficulty = self.ACCOUNTS.TREASURY.difficulty
 
-        logging.info(f"My rewards: {self.ACCOUNTS.PROOF.claimable_rewards / 1_000_000_000}")
-        logging.info("Mining next block...")
+        logging.info(f"Miner {str(self.SIGNER.pubkey())} rewards: {self.ACCOUNTS.PROOF.claimable_rewards / 1_000_000_000}")
+        logging.info(f"Miner {str(self.SIGNER.pubkey())} mining next block...")
         hash, nonce = self.FindHash(seed=bytes(currentHash), difficulty=bytes(currentDifficulty))
         self.ACCOUNTS.UpdateNonce(nonce=nonce)
-        logging.info(f"Found hash with nonce: {nonce}")
+        logging.info(f"Miner {str(self.SIGNER.pubkey())} Found hash with nonce: {nonce}")
 
         # Refetch because mining could take a lot of time
         self.ACCOUNTS.FetchState()
@@ -140,7 +141,7 @@ class Miner:
 
         bus, busAddress = self.GetCorrectBus(rewardRate=self.ACCOUNTS.TREASURY.reward_rate)
         busRewards: float = bus.rewards / 1_000_000_000
-        logging.info(f"Sending on bus {str(busAddress)} (with {busRewards} ORE)")
+        logging.info(f"Miner {str(self.SIGNER.pubkey())} sending on bus {str(busAddress)} (with {busRewards} ORE)")
 
         try:
             ixMine = mine(signer = self.SIGNER.pubkey(), 
