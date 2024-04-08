@@ -176,7 +176,7 @@ class Miner:
 
             # Reset nonce only if it is a success
             if result == SapysolTxStatus.SUCCESS:
-                self.ACCOUNTS.UpdateNonce(nonce=nonce)
+                self.ACCOUNTS.UpdateNonce(nonce=0)
 
             # No matter what result is we recorded last (successfull) nonce and will retry
             # with refetching all accounts. See, because Solana is congested we can get TIMEOUT
