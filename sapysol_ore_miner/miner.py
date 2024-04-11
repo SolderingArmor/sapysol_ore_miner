@@ -164,7 +164,7 @@ class Miner:
         # the hash with updated data because difficulty may have changed and the hash may become
         # invalid. It's just a double check to avoid 0x03 errors.
         # P.S. if it is less than 3 seconds between 2 fetches that probably means we are resubmitting,
-        # no reason to query same data
+        # no reason to query same data.
         if int(time.time()) - startTime > 3:
             self.ACCOUNTS.FetchState()
         if not self.CheckHash(seed=bytes(self.ACCOUNTS.PROOF.hash), nonce=nonce, difficulty=bytes(self.ACCOUNTS.TREASURY.difficulty)):
